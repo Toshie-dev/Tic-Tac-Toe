@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <!-- <script defer src='socket.js'></script> -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"
+        integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO"
+        crossorigin="anonymous"></script>
+    <style>
+        .grid {
+            display: grid;
+            grid-template-columns: 100px 100px 100px;
+            grid-template-rows: 100px 100px 100px;
+            margin: 1rem;
+        }
+
+        .box {
+            text-align: center;
+            border: 1px solid black;
+            font-size: 5rem;
+        }
+
+
+        #new-game {
+            background: orange;
+            font-size: 1.5rem;
+            border-radius: 5px;
+            border: none;
+            margin: 0.5rem;
+            cursor: pointer;
+        }
+
+        .opponent {
+            border-radius: 5px;
+            border: none;
+            font-size: 1.5rem;
+            background: lightgray;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <div class='grid'>
+        <div class='box' id='0'></div>
+        <div class='box' id='1'></div>
+        <div class='box' id='2'></div>
+        <div class='box' id='3'></div>
+        <div class='box' id='4'></div>
+        <div class='box' id='5'></div>
+        <div class='box' id='6'></div>
+        <div class='box' id='7'></div>
+        <div class='box' id='8'></div>
+    </div>
+
+    <label class='opponent'>Opponent: <b></b></label><br>
+    <button id='new-game'>New Game</button>
+    <script>
+        const socket = io('ws://localhost:8080');
+        var turn = 0;
+        let opponent;
+        let play;
+        const new_game = document.getElementById('new-game');
+        let label = document.querySelector('.opponent');
+
+
+        socket.on('new', (user) => {
+            opponent = user.id;
+            console.log(`${user.id} joined`);
+            label.innerHTML = `<b>${user.id}</b`;
+
+        });
+
+        socket.on('message', text => {
+            play = text.msg;
+            boxes[play].textContent = 'x';
+
+            turn = 0;
+
+            checkWin('x');
+            checkWin('o');
+        });
+
+
+        socket.on('disconnect', () => {
+            console.log('user left');
+        });
+
+        socket.on('new-game', () => {
+            location.reload();
+        });
+
+        const boxes = document.querySelectorAll('.box');
+
+        var counter = 0;
+
+
+        const wins = [
+            [0, 1, 2],
+            [3, 4, 5],
+            [6, 7, 8],
+            [0, 3, 6],
+            [1, 4, 7],
+            [2, 5, 8],
+            [0, 4, 8],
+            [2, 4, 6]
+        ]
+
+        win = false;
+
+        function checkWin(player) {
+            for (let i = 0; i < 8; i++) {
+                if ((boxes[wins[i][0]].textContent == boxes[wins[i][1]].textContent) && (boxes[wins[i][1]].textContent == boxes[wins[i][2]].textContent) && (boxes[wins[i][1]].textContent == player)) {
+                    win = true;
+                    if (player == 'x') {
+                        console.log(`${opponent} Won`);
+                    } else {
+                        console.log('you Won');
+                    }
+                }
+            }
+        }
+
+
+        boxes.forEach((box) => {
+            box.addEventListener('click', () => {
+                if (counter < 10 && !box.textContent && !win) {
+                    if (turn == 0) {
+                        socket.emit('message', box.id);
+                        box.textContent = 'o';
+                        turn = 1;
+                    }
+                    counter++;
+                    checkWin('x');
+                    checkWin('o');
+                }
+            });
+        });
+
+        new_game.addEventListener('click', () => {
+            socket.emit('new');
+        });
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
